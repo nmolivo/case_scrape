@@ -5,7 +5,7 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import session
 from sqlalchemy.orm.session import sessionmaker
 
-from src.herd.services.db.db_config import get_db_config
+from case_scrape.db.db_config import get_db_config
 
 DB_ENGINE: Optional[Engine]
 SESSIONMAKER: Optional[sessionmaker] = None

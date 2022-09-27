@@ -1,4 +1,3 @@
-import os
 from dataclasses import dataclass
 from typing import Optional
 
@@ -10,19 +9,23 @@ from sqlalchemy.engine.base import Engine
 
 
 @dataclass
-class DBConfig(Config):
+class DBConfig:
     password: Optional[str] = None
     user: Optional[str] = None
     database: str = "cuyacourts"
     scheme: str = "postgresql"
     host: str = "localhost"
-    schema: str = "public"
 
     def get_engine(self, **kwargs) -> Engine:
         """Get a SQLAlchemy Engine"""
         engine = create_engine(
-            f"{self.schema}://{self.user}:{self.password}@{self.host}/{self.database}",
+            f"{self.scheme}://{self.user}:{self.password}@{self.host}/{self.database}",
             connect_args={"connect_timeout": 90},
             **kwargs,
         )
         return engine
+
+
+def get_db_config() -> Optional[DBConfig]:
+    global DB_CONFIG
+    return DB_CONFIG

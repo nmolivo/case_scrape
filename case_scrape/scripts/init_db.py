@@ -7,16 +7,10 @@ def init_db():
 
     engine = DBConfig(
         password=os.getenv("DB_PASSWORD"),
-        user=os.getenv("DB_USER"),
-        database=os.getenv("DB_DATABASE"),
-        scheme=os.getenv("DB_SCHEME"),
-        host=os.getenv("DB_HOST"),
-        schema=os.getenv("DB_SCHEMA"),
+        user=os.getenv("DB_USER")
     ).get_engine()
 
     Base.metadata.create_all(bind=engine)
-
-    db_session.commit()
 
     print("Initialized the db")
 
