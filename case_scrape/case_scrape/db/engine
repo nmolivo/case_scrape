@@ -1,0 +1,38 @@
+from typing import Optional
+
+from sqlalchemy import engine
+from sqlalchemy.engine.base import Engine
+from sqlalchemy.orm import session
+from sqlalchemy.orm.session import sessionmaker
+
+from src.herd.services.db.db_config import get_db_config
+
+DB_ENGINE: Optional[Engine]
+SESSIONMAKER: Optional[sessionmaker] = None
+
+def get_db_engine(**kwargs) -> Engine:
+    global DB_ENGINE
+    if DB_ENGINE is None:
+        db_config = get_db_config()
+        DB_ENGINE = db_config.get_engine(**kwargs)
+    return DB_ENGINE
+
+
+def get_db():
+    engine = get_db_engine()
+
+    global SESSIONMAKER
+    if SESSIONMAKER is None:
+        SESSIONMAKER = sessionmaker(bind=engine)
+    db = SESSIONMAKER()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def get_session():
+    global SESSIONMAKER
+    if SESSIONMAKER is None:
+        SESSIONMAKER = sessionmaker(bind=get_db_engine())
+    db = SESSIONMAKER()
+    return db
