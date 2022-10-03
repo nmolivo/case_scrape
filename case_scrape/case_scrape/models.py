@@ -7,10 +7,10 @@ Base = declarative_base()
 
 class CaseInformation(Base):
     __tablename__ = "case_information"
-    __table_args__ = PrimaryKeyConstraint("id", name="case_information_primary_key")
+    __table_args__ = (PrimaryKeyConstraint("id", name="case_information_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
-    case_number = Column(String, primary_key=True)
+    case_number = Column(String)
     status = Column(String)
     judge_name = Column(String)
     next_event = Column(String)
@@ -22,13 +22,13 @@ class CaseInformation(Base):
 
 class DefendantInformation(Base):
     __tablename__ = "defendant_information"
-    __table_args__ = PrimaryKeyConstraint(
+    __table_args__ = (PrimaryKeyConstraint(
         "id", name="defendant_information_primary_key"
-    )
+    ),)
 
     id = Column(Integer, autoincrement=True)
     case_number = Column(String)
-    number = Column(String, primary_key=True)
+    number = Column(String)
     name = Column(String)
     status = Column(String)
     date_of_birth = Column(String)
@@ -40,7 +40,7 @@ class DefendantInformation(Base):
 
 class Charges(Base):
     __tablename__ = "charges"
-    __table_args__ = PrimaryKeyConstraint("id", name="charges_primary_key")
+    __table_args__ = (PrimaryKeyConstraint("id", name="charges_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
     case_number = Column(String)
@@ -52,7 +52,7 @@ class Charges(Base):
 
 class BondInformation(Base):
     __tablename__ = "bond_information"
-    __table_args__ = PrimaryKeyConstraint("id", name="bond_information_primary_key")
+    __table_args__ = (PrimaryKeyConstraint("id", name="bond_information_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
     case_number = Column(String)
@@ -66,7 +66,7 @@ class BondInformation(Base):
 
 class CaseActions(Base):
     __tablename__ = "case_actions"
-    __table_args__ = PrimaryKeyConstraint("id", name="case_action_primary_key")
+    __table_args__ = (PrimaryKeyConstraint("id", name="case_action_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
     case_number = Column(String)
@@ -76,9 +76,10 @@ class CaseActions(Base):
 
 class DocketInformation(Base):
     __tablename__ = "docket_information"
-    __table_args__ = PrimaryKeyConstraint("id", name="docket_information_primary_key")
+    __table_args__ = (PrimaryKeyConstraint("id", name="docket_information_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
+    case_number=Column(String)
     proceeding_date = Column(DateTime)
     filing_date = Column(DateTime)
     docket_party = Column(String)
@@ -90,21 +91,22 @@ class DocketInformation(Base):
 
 class CostInformation(Base):
     __tablename__ = "cost_information"
-    __table_args__ = PrimaryKeyConstraint("id", name="cost_primary_key")
+    __table_args__ = (PrimaryKeyConstraint("id", name="cost_primary_key"),)
 
-    case_information
     id = Column(Integer, autoincrement=True)
+    case_number = Column(String)
     account = Column(String)
     amount = Column(String)
 
 
 class Defendant(Base):
     __tablename__ = "defendant"
-    __table_args__ = PrimaryKeyConstraint("id", name="defendant_primary_key")
+    __table_args__ = (PrimaryKeyConstraint("id", name="defendant_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
     name = Column(String)
-    id = Column(String)
+    case_number = Column(String)
+    defendant_id = Column(String)
     status = Column(String)
     marital_status = Column(String)
     birth_city = Column(String)
@@ -114,7 +116,6 @@ class Defendant(Base):
     address_2 = Column(String)
     address_3 = Column(String)
     city_state_zip = Column(String)
-    aliases = Column(String)
     race = Column(String)
     height = Column(String)
     sex = Column(String)
@@ -125,11 +126,23 @@ class Defendant(Base):
     hair = Column(String)
 
 
-class Attorney(Base):
-    __tablename__ = "attorny"
-    __table_args__ = PrimaryKeyConstraint("id", name="attorney_primary_key")
+class Alias(Base):
+    __tablename__ = "alias"
+    __table_args__ = (PrimaryKeyConstraint("id", name="alias_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
-    attorney_id = Column()
+    defendent_id = Column(String)
+    case_number = Column(String)
     name = Column(String)
-    address_phone = Column(String)
+    dob = Column(String)
+
+
+class Attorney(Base):
+    __tablename__ = "attorney"
+    __table_args__ = (PrimaryKeyConstraint("id", name="attorney_primary_key"),)
+
+    id = Column(Integer, autoincrement=True)
+    case_number = Column(String)
+    name = Column(String)
+    address = Column(String)
+    phone = Column(String)

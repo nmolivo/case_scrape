@@ -4,3 +4,4 @@ SQLAlchemy==1.4.40
 chromedriver-py==105.0.5195.19
 selenium==4.4.2
 webdriver-manager==3.8.3
+psycopg2==2.9.3
