@@ -56,11 +56,11 @@ class BondInformation(Base):
 
     id = Column(Integer, autoincrement=True)
     case_number = Column(String)
-    number = Column(String)
-    amount = Column(Float)
+    bond_number = Column(String)
+    amount = Column(String)
     type = Column(String)
-    date_set = Column(DateTime)
-    date_posted = Column(DateTime)
+    date_set = Column(String)
+    date_posted = Column(String)
     bondsman_surety_co = Column(String)
 
 
@@ -70,7 +70,7 @@ class CaseActions(Base):
 
     id = Column(Integer, autoincrement=True)
     case_number = Column(String)
-    event_date = Column(DateTime)
+    event_date = Column(String)
     event_description = Column(String)
 
 
@@ -80,8 +80,8 @@ class DocketInformation(Base):
 
     id = Column(Integer, autoincrement=True)
     case_number=Column(String)
-    proceeding_date = Column(DateTime)
-    filing_date = Column(DateTime)
+    proceeding_date = Column(String)
+    filing_date = Column(String)
     docket_party = Column(String)
     docket_type = Column(String)
     docket_description = Column(String)
