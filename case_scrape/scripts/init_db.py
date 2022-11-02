@@ -6,8 +6,10 @@ from case_scrape.db.db_config import DBConfig
 def init_db():
 
     engine = DBConfig(
-        password=os.getenv("DB_PASSWORD"),
-        user=os.getenv("DB_USER")
+        password=os.getenv("DB_PASSWORD"), 
+        user=os.getenv("DB_USER"),
+        # database="cuyacourts"
+        # host=os.getenv("DB_HOST")
     ).get_engine()
 
     Base.metadata.create_all(bind=engine)
