@@ -1,16 +1,16 @@
-from sqlalchemy import Column, String, DateTime, Float, Integer
+from sqlalchemy import Column, ForeignKey, String, DateTime, Float, Integer
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql.schema import PrimaryKeyConstraint
 
 Base = declarative_base()
 
 
-class CaseInformation(Base):
-    __tablename__ = "case_information"
-    __table_args__ = (PrimaryKeyConstraint("id", name="case_information_primary_key"),)
+class CaseDefendant(Base):
+    __tablename__ = "case_defendant"
+    __table_args__ = (PrimaryKeyConstraint("case_number", name="case_defendant_primary_key"),)
 
-    id = Column(Integer, autoincrement=True)
-    case_number = Column(String)
+    case_number = Column(String, primary_key=True, unique=True)
     status = Column(String)
     judge_name = Column(String)
     next_event = Column(String)
@@ -18,44 +18,45 @@ class CaseInformation(Base):
     arresting_agency = Column(String)
     arresting_agency_report = Column(String)
     court_of_appeals_case = Column(String)
-
-
-class DefendantInformation(Base):
-    __tablename__ = "defendant_information"
-    __table_args__ = (PrimaryKeyConstraint(
-        "id", name="defendant_information_primary_key"
-    ),)
-
-    id = Column(Integer, autoincrement=True)
-    case_number = Column(String)
-    number = Column(String)
+    date_scraped = Column(DateTime)
+    defendant_id = Column(String, ForeignKey("defendant.id"), nullable=False)
     name = Column(String)
-    status = Column(String)
+    defendant_status = Column(String)
     date_of_birth = Column(String)
     race = Column(String)
     sex = Column(String)
     other_cases = Column(String)
     co_defendants = Column(String)
+    charges = relationship("Charge", back_populates="case_defendant")
+    bonds = relationship("Bond", back_populates="case_defendant")
+    actions = relationship("Action", back_populates="case_defendant")
+    dockets = relationship("Docket", back_populates="case_defendant")
+    costs = relationship("Cost", back_populates="case_defendant")
+    attornies = relationship("Attorney", back_populates="case_defendant")
 
 
-class Charges(Base):
-    __tablename__ = "charges"
+class Charge(Base):
+    __tablename__ = "charge"
     __table_args__ = (PrimaryKeyConstraint("id", name="charges_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
-    case_number = Column(String)
+    case_number = Column(
+        String, ForeignKey("case_defendant.case_number"), nullable=False
+    )
     type = Column(String)
     statute = Column(String)
     charge_description = Column(String)
     disposition = Column(String)
 
 
-class BondInformation(Base):
-    __tablename__ = "bond_information"
-    __table_args__ = (PrimaryKeyConstraint("id", name="bond_information_primary_key"),)
+class Bond(Base):
+    __tablename__ = "bond"
+    __table_args__ = (PrimaryKeyConstraint("id", name="bond_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
-    case_number = Column(String)
+    case_number = Column(
+        String, ForeignKey("case_defendant.case_number"), nullable=False
+    )
     bond_number = Column(String)
     amount = Column(String)
     type = Column(String)
@@ -64,22 +65,26 @@ class BondInformation(Base):
     bondsman_surety_co = Column(String)
 
 
-class CaseActions(Base):
-    __tablename__ = "case_actions"
-    __table_args__ = (PrimaryKeyConstraint("id", name="case_action_primary_key"),)
+class Action(Base):
+    __tablename__ = "action"
+    __table_args__ = (PrimaryKeyConstraint("id", name="action_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
-    case_number = Column(String)
+    case_number = Column(
+        String, ForeignKey("case_defendant.case_number"), nullable=False
+    )
     event_date = Column(String)
     event_description = Column(String)
 
 
-class DocketInformation(Base):
-    __tablename__ = "docket_information"
-    __table_args__ = (PrimaryKeyConstraint("id", name="docket_information_primary_key"),)
+class Docket(Base):
+    __tablename__ = "docket"
+    __table_args__ = (PrimaryKeyConstraint("id", name="docket_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
-    case_number=Column(String)
+    case_number = Column(
+        String, ForeignKey("case_defendant.case_number"), nullable=False
+    )
     proceeding_date = Column(String)
     filing_date = Column(String)
     docket_party = Column(String)
@@ -89,24 +94,25 @@ class DocketInformation(Base):
     image_s3_path = Column(String, nullable=True)
 
 
-class CostInformation(Base):
-    __tablename__ = "cost_information"
+class Cost(Base):
+    __tablename__ = "cost"
     __table_args__ = (PrimaryKeyConstraint("id", name="cost_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
-    case_number = Column(String)
+    case_number = Column(
+        String, ForeignKey("case_defendant.case_number"), nullable=False
+    )
     account = Column(String)
     amount = Column(String)
 
 
 class Defendant(Base):
     __tablename__ = "defendant"
-    __table_args__ = (PrimaryKeyConstraint("id", name="defendant_primary_key"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("id", name="defendant_primary_key"),)
 
-    id = Column(Integer, autoincrement=True)
+    id = Column(String, primary_key=True, index=True, unique=True, nullable=False)
     name = Column(String)
-    case_number = Column(String)
-    defendant_id = Column(String)
     status = Column(String)
     marital_status = Column(String)
     birth_city = Column(String)
@@ -131,7 +137,7 @@ class Alias(Base):
     __table_args__ = (PrimaryKeyConstraint("id", name="alias_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
-    defendent_id = Column(String)
+    defendant_id = Column(String, ForeignKey("defendant.id"), nullable=False)
     case_number = Column(String)
     name = Column(String)
     dob = Column(String)
@@ -142,7 +148,9 @@ class Attorney(Base):
     __table_args__ = (PrimaryKeyConstraint("id", name="attorney_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
-    case_number = Column(String)
+    case_number = Column(
+        String, ForeignKey("case_defendant.case_number"), nullable=False
+    )
     name = Column(String)
     address = Column(String)
     phone = Column(String)
