@@ -155,7 +155,7 @@ class Alias(Base):
 
     id = Column(Integer, autoincrement=True)
     defendant_id = Column(String, ForeignKey("defendant.id"), nullable=False, index=True)
-    case_number = Column(String)
+    case_number = Column(String, index = True)
     name = Column(String)
     dob = Column(String)
     defendant = relationship("Defendant", back_populates="aliases")

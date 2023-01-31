@@ -2,13 +2,17 @@ import os
 import random
 import re
 from datetime import datetime
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
 import pandas as pd
 
 from sqlalchemy.orm import Session, sessionmaker
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException, WebDriverException, NoSuchElementException
+from selenium.common.exceptions import (
+    TimeoutException,
+    WebDriverException,
+    NoSuchElementException,
+)
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -25,8 +29,11 @@ from case_scrape import models
 
 
 engine = DBConfig(
-    password=os.getenv("DB_PASSWORD"), user=os.getenv("DB_USER")
+    password=os.getenv("DB_PASSWORD"), user=os.getenv("DB_USER"), host="localhost", port=5432
+    # host=os.getenv("DB_HOST"), port=os.getenv("DB_PORT")
 ).get_engine()
+
+Base.metadata.create_all(bind=engine, checkfirst=True)
 
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -48,8 +55,7 @@ case_numbers = (
     + [str(x) for x in range(602355, 612910)]
 )
 
-# last_case_scraped = get_last_scraped()
-last_case_scraped = 0
+last_case_scraped = get_last_scraped()
 
 if last_case_scraped:
     next_idx = case_numbers.index(str(last_case_scraped)) + 1
@@ -128,7 +134,14 @@ def get_images(data, images):
             data_list.append(d.text)
     return data_list
 
-def get_table(driver, case_number: str, header_xpath: str, data_xpath: str, image_xpath: Union[None, str] = None):
+
+def get_table(
+    driver,
+    case_number: str,
+    header_xpath: str,
+    data_xpath: str,
+    image_xpath: Union[None, str] = None,
+):
     headers = driver.find_elements(By.XPATH, header_xpath)
     data = driver.find_elements(By.XPATH, data_xpath)
     if image_xpath:
@@ -167,13 +180,15 @@ def fetch_case_summary(db, driver):
         By.XPATH, "//*[(@id = 'SheetContentPlaceHolder_caseSummary_lblCaseNumber')]"
     ).text
     try:
-        coa_case = court_of_appeals_case=driver.find_element(
+        coa_case = court_of_appeals_case = driver.find_element(
             By.XPATH, "//*[(@id = 'SheetContentPlaceHolder_caseSummary_lblCOACase')]"
         ).text
     except NoSuchElementException:
-        coa_case = court_of_appeals_case=driver.find_element(
-            By.XPATH, "//*[(@id = 'SheetContentPlaceHolder_caseSummary_pCOACase')]"
-        ).text,
+        coa_case = court_of_appeals_case = (
+            driver.find_element(
+                By.XPATH, "//*[(@id = 'SheetContentPlaceHolder_caseSummary_pCOACase')]"
+            ).text,
+        )
     case_defendant = models.CaseDefendant(
         case_number=case_number,
         status=driver.find_element(
@@ -241,7 +256,19 @@ def fetch_case_summary_tables(db, driver, case_number) -> Tuple[WebDriver, str]:
         data_xpath="//table[(@id = 'SheetContentPlaceHolder_caseCharges_gvCharges')]//td",
     )
     # delete all before adding them if they exist
-    db.query(models.Charge).filter(models.Charge.case_number == case_number).delete()
+    if (
+        len(
+            db.query(models.Charge)
+            .filter(models.Charge.case_number == case_number)
+            .all()
+        )
+        > 0
+    ):
+        dele = models.Charge.__table__.delete().where(
+            models.Charge.case_number == case_number
+        )
+        db.execute(dele)
+        db.commit()
     write_pandas_df_to_db(db, charge_df, "charge")
 
     driver, bond_df = get_table(
@@ -250,7 +277,15 @@ def fetch_case_summary_tables(db, driver, case_number) -> Tuple[WebDriver, str]:
         header_xpath="//table[(@id = 'SheetContentPlaceHolder_caseBondInfo_gvBonds')]//th",
         data_xpath="//table[(@id = 'SheetContentPlaceHolder_caseBondInfo_gvBonds')]//td",
     )
-    db.query(models.Bond).filter(models.Bond.case_number == case_number).delete()
+    if (
+        len(db.query(models.Bond).filter(models.Bond.case_number == case_number).all())
+        > 0
+    ):
+        dele = models.Bond.__table__.delete().where(
+            models.Bond.case_number == case_number
+        )
+        db.execute(dele)
+        db.commit()
     write_pandas_df_to_db(db, bond_df, "bond")
 
     driver, action_df = get_table(
@@ -259,13 +294,25 @@ def fetch_case_summary_tables(db, driver, case_number) -> Tuple[WebDriver, str]:
         header_xpath="//table[(@id = 'SheetContentPlaceHolder_caseActions_gvActions')]//th",
         data_xpath="//table[(@id = 'SheetContentPlaceHolder_caseActions_gvActions')]//td",
     )
+    if (
+        len(
+            db.query(models.Action)
+            .filter(models.Action.case_number == case_number)
+            .all()
+        )
+        > 0
+    ):
+        dele = models.Action.__table__.delete().where(
+            models.Action.case_number == case_number
+        )
+        db.execute(dele)
+        db.commit()
     write_pandas_df_to_db(db, action_df, "action")
-    db.query(models.Action).filter(models.Action.case_number == case_number).delete()
     return driver, case_number
 
 
-def fetch_docket_info(db, driver, case_number):
-    """from case summary page, clicks docket, downloads information"""
+def fetch_docket_info(db, driver, case_number) -> Tuple[WebDriver, str]:
+    """from case summary page, clicks docket, downloads information, checks if it already exists, deletes if so, then appends to database."""
     WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (By.ID, "SheetContentPlaceHolder_caseHeader_lbDocket")
@@ -277,15 +324,28 @@ def fetch_docket_info(db, driver, case_number):
         case_number,
         header_xpath="//table[(@id = 'SheetContentPlaceHolder_caseDocket_gvDocketInformation')]//th",
         data_xpath="//table[(@id = 'SheetContentPlaceHolder_caseDocket_gvDocketInformation')]//td",
-        image_xpath="//table[(@id = 'SheetContentPlaceHolder_caseDocket_gvDocketInformation')]//td//a"
+        image_xpath="//table[(@id = 'SheetContentPlaceHolder_caseDocket_gvDocketInformation')]//td//a",
     )
     docket_table.rename(columns={"VIEW IMAGE": "pdf_link"}, inplace=True)
-    db.query(models.Docket).filter(models.Docket.case_number == case_number).delete()
+    if (
+        len(
+            db.query(models.Docket)
+            .filter(models.Docket.case_number == case_number)
+            .all()
+        )
+        > 0
+    ):
+        dele = models.Docket.__table__.delete().where(
+            models.Docket.case_number == case_number
+        )
+        db.execute(dele)
+        db.commit()
     write_pandas_df_to_db(db, docket_table, "docket")
     return driver, case_number
 
 
-def fetch_cost_info(db, driver, case_number):
+def fetch_cost_info(db, driver, case_number) -> Tuple[WebDriver, str]:
+    """Clicks the cost panel, obtains table, observes if table already exists, deletes if so, appends new records to database"""
     WebDriverWait(driver, 2).until(
         EC.element_to_be_clickable(
             (By.ID, "SheetContentPlaceHolder_caseHeader_lbCosts")
@@ -302,7 +362,15 @@ def fetch_cost_info(db, driver, case_number):
     )
     # remove "Total" row, as we can calculate this ourselves.
     cost_table[cost_table["ACCOUNT"].str.contains("TOTAL") == False]
-    db.query(models.Cost).filter(models.Cost.case_number == case_number).delete()
+    if (
+        len(db.query(models.Cost).filter(models.Cost.case_number == case_number).all())
+        > 0
+    ):
+        dele = models.Cost.__table__.delete().where(
+            models.Cost.case_number == case_number
+        )
+        db.execute(dele)
+        db.commit()
     write_pandas_df_to_db(db, cost_table, "cost")
     return driver, case_number
 
@@ -373,7 +441,6 @@ def fetch_defendant_info(db, driver, case_number):
             By.XPATH, "//*[(@id = 'SheetContentPlaceHolder_defIDChar_lblHair')]"
         ).text,
     )
-    # anticipates terms of service
     db.merge(defendant)
     db.commit()
     driver, alias_table = get_table(
@@ -383,7 +450,28 @@ def fetch_defendant_info(db, driver, case_number):
         data_xpath="//table[(@id = 'SheetContentPlaceHolder_defAlias_gvAlias')]//td",
     )
     alias_table["defendant_id"] = defendant.id
-    db.query(models.Alias).filter(and_(models.Alias.defendant_id == defendant.id, models.Alias.case_number == case_number)).delete()
+    # deletes existing records so as not to duplicate
+    if (
+        len(
+            db.query(models.Alias)
+            .filter(
+                and_(
+                    models.Alias.case_number == case_number,
+                    models.Alias.defendant_id == defendant.id,
+                )
+            )
+            .all()
+        )
+        > 0
+    ):
+        dele = models.Alias.__table__.delete().where(
+            and_(
+                models.Alias.case_number == case_number,
+                models.Alias.defendant_id == defendant.id,
+            )
+        )
+        db.execute(dele)
+        db.commit()
     write_pandas_df_to_db(db, alias_table, "alias")
     return driver, case_number
 
@@ -409,9 +497,21 @@ def get_attorney_table(db, driver, case_number, table_data):
         ]
     except IndexError:
         attorney_phone = [
-        x.split("\nAddress/Phone:")[1].split("\n")[-1].strip() for x in atts
-    ]
-    db.query(models.Attorney).filter(models.Attorney.case_number == case_number).delete()
+            x.split("\nAddress/Phone:")[1].split("\n")[-1].strip() for x in atts
+        ]
+    if (
+        len(
+            db.query(models.Attorney)
+            .filter(models.Attorney.case_number == case_number)
+            .all()
+        )
+        > 0
+    ):
+        dele = models.Attorney.__table__.delete().where(
+            models.Attorney.case_number == case_number
+        )
+        db.execute(dele)
+        db.commit()
     for n, a, p in zip(attorney_names, attorney_address, attorney_phone):
         if not re.match(r"^[1-9]\d{2}-\d{3}-\d{4}", p):
             p = ""
@@ -449,60 +549,59 @@ def update_case(db, case_number, status):
 
 ### okay now the actual scrape!
 
-# for case_no_str in cases_to_srape:
-#     opts = Options()
-#     # opts.headless = True
-#     session = Session()
-#     driver = webdriver.Chrome(
-#         options=opts, service=ChromeService(ChromeDriverManager().install())
-#     )
-#     driver = search_case_number(driver, case_no_str)
-#     data_elems = driver.find_elements(
-#         By.XPATH, "//*[(@id='SheetContentPlaceHolder_ctl00_gvCaseResults')]//*[@href]"
-#     )
-#     if len(data_elems) > 0:
-#         for i, elem in enumerate(data_elems):
-#             data_elems = driver.find_elements(
-#                 By.XPATH,
-#                 "//*[(@id='SheetContentPlaceHolder_ctl00_gvCaseResults')]//*[@href]",
-#             )
-#             data_elems[i].click()
-#             driver, case_number = fetch_case_summary(session, driver)
-#             driver, case_number = fetch_case_summary_tables(
-#                 session, driver, case_number
-#             )
-#             driver, case_number = fetch_docket_info(session, driver, case_number)
-#             driver.back()
-#             driver = check_tos(driver)
-#             driver, case_number = fetch_cost_info(session, driver, case_number)
-#             driver.back()
-#             driver = check_tos(driver)
-#             driver, case_number = fetch_defendant_info(session, driver, case_number)
-#             driver.back()
-#             driver = check_tos(driver)
-#             driver, case_number = fetch_attorney_info(session, driver, case_number)
-#             driver.back()
-#             driver = check_tos(driver)
-#             driver.back()
-#             update_case(session, case_no_str, "Data Obtained")
-#     else:
-#         try:
-#             driver, case_number = fetch_case_summary(session, driver)
-#         except TimeoutException:
+for case_no_str in cases_to_srape:
+    opts = Options()
+    # opts.headless = True
+    session = Session()
+    driver = webdriver.Chrome(
+        options=opts, service=ChromeService(ChromeDriverManager().install())
+    )
+    driver = search_case_number(driver, case_no_str)
+    data_elems = driver.find_elements(
+        By.XPATH, "//*[(@id='SheetContentPlaceHolder_ctl00_gvCaseResults')]//*[@href]"
+    )
+    if len(data_elems) > 0:
+        for i, elem in enumerate(data_elems):
+            data_elems = driver.find_elements(
+                By.XPATH,
+                "//*[(@id='SheetContentPlaceHolder_ctl00_gvCaseResults')]//*[@href]",
+            )
+            data_elems[i].click()
+            driver, case_number = fetch_case_summary(session, driver)
+            driver, case_number = fetch_case_summary_tables(
+                session, driver, case_number
+            )
+            driver, case_number = fetch_docket_info(session, driver, case_number)
+            driver.back()
+            driver = check_tos(driver)
+            driver, case_number = fetch_cost_info(session, driver, case_number)
+            driver.back()
+            driver = check_tos(driver)
+            driver, case_number = fetch_defendant_info(session, driver, case_number)
+            driver.back()
+            driver = check_tos(driver)
+            driver, case_number = fetch_attorney_info(session, driver, case_number)
+            driver.back()
+            driver = check_tos(driver)
+            driver.back()
+            update_case(session, case_no_str, "Data Obtained")
+    else:
+        try:
+            driver, case_number = fetch_case_summary(session, driver)
+        except TimeoutException:
 
-#             driver.close()
-#             driver.quit()
-#             update_case(session, case_no_str, "No Data") 
-#             session.close()
-#             continue
+            driver.close()
+            driver.quit()
+            update_case(session, case_no_str, "No Data")
+            session.close()
+            continue
 
-
-#         driver, case_number = fetch_case_summary_tables(session, driver, case_number)
-#         driver, case_number = fetch_docket_info(session, driver, case_number)
-#         driver, case_number = fetch_cost_info(session, driver, case_number)
-#         driver, case_number = fetch_defendant_info(session, driver, case_number)
-#         driver, case_number = fetch_attorney_info(session, driver, case_number)
-#         update_case(session, case_no_str, "Data Obtained")
-#         driver.close()
-#         driver.quit()
-#         session.close()
+        driver, case_number = fetch_case_summary_tables(session, driver, case_number)
+        driver, case_number = fetch_docket_info(session, driver, case_number)
+        driver, case_number = fetch_cost_info(session, driver, case_number)
+        driver, case_number = fetch_defendant_info(session, driver, case_number)
+        driver, case_number = fetch_attorney_info(session, driver, case_number)
+        update_case(session, case_no_str, "Data Obtained")
+        driver.close()
+        driver.quit()
+        session.close()
