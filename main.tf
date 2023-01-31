@@ -1,9 +1,9 @@
 provider "aws" {
-  region = "eu-central-1"
+  region = "us-east-1"
 }
 resource "aws_iam_role" "lambda_role" {
 name   = "Criminal_Court_Case_Scrape_Lambda_Function_Role"
-assume_role_policy = <<EOF
+assume_role_policy =
 {
  "Version": "2012-10-17",
  "Statement": [
@@ -17,14 +17,13 @@ assume_role_policy = <<EOF
    }
  ]
 }
-EOF
-}
+
 resource "aws_iam_policy" "iam_policy_for_lambda" {
  
  name         = "aws_iam_policy_for_terraform_aws_lambda_role"
  path         = "/"
  description  = "AWS IAM Policy for managing aws lambda role"
- policy = <<EOF
+ policy =
 {
  "Version": "2012-10-17",
  "Statement": [
@@ -38,8 +37,6 @@ resource "aws_iam_policy" "iam_policy_for_lambda" {
      "Effect": "Allow"
    }
  ]
-}
-EOF
 }
  
 resource "aws_iam_role_policy_attachment" "attach_iam_policy_to_iam_role" {
@@ -63,6 +60,6 @@ depends_on                     = [aws_iam_role_policy_attachment.attach_iam_poli
 }
 
 resource "aws_rds" "cuya_courts" {
-    username=""
+    username="case_writer"
     db_name="criminal"
 }

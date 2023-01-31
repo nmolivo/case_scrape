@@ -15,11 +15,12 @@ class DBConfig:
     database: str = "cuyacourts"
     scheme: str = "postgresql"
     host: str = "localhost"
+    port: int = 5432
 
     def get_engine(self, **kwargs) -> Engine:
         """Get a SQLAlchemy Engine"""
         engine = create_engine(
-            f"{self.scheme}://{self.user}:{self.password}@{self.host}/{self.database}",
+            f"{self.scheme}://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}",
             connect_args={"connect_timeout": 90},
             **kwargs,
         )

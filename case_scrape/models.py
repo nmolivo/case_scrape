@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, String, DateTime, Float, Integer
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.schema import PrimaryKeyConstraint
@@ -6,9 +6,21 @@ from sqlalchemy.sql.schema import PrimaryKeyConstraint
 Base = declarative_base()
 
 
+class Progress(Base):
+    __tablename__ = "progress"
+    __table_args__ = (PrimaryKeyConstraint("id", name="progress_id"),)
+
+    id = Column(Integer, autoincrement=True)
+    case_id = Column(String)
+    date_scraped = Column(DateTime)
+    details = Column(String)
+
+
 class CaseDefendant(Base):
     __tablename__ = "case_defendant"
-    __table_args__ = (PrimaryKeyConstraint("case_number", name="case_defendant_primary_key"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("case_number", name="case_defendant_primary_key"),
+    )
 
     case_number = Column(String, primary_key=True, unique=True)
     status = Column(String)
@@ -19,7 +31,7 @@ class CaseDefendant(Base):
     arresting_agency_report = Column(String)
     court_of_appeals_case = Column(String)
     date_scraped = Column(DateTime)
-    defendant_id = Column(String, ForeignKey("defendant.id"), nullable=False)
+    defendant_id = Column(String)
     name = Column(String)
     defendant_status = Column(String)
     date_of_birth = Column(String)
@@ -41,12 +53,13 @@ class Charge(Base):
 
     id = Column(Integer, autoincrement=True)
     case_number = Column(
-        String, ForeignKey("case_defendant.case_number"), nullable=False
+        String, ForeignKey("case_defendant.case_number"), nullable=False, index=True
     )
     type = Column(String)
     statute = Column(String)
     charge_description = Column(String)
     disposition = Column(String)
+    case_defendant = relationship("CaseDefendant", back_populates="charges")
 
 
 class Bond(Base):
@@ -55,7 +68,7 @@ class Bond(Base):
 
     id = Column(Integer, autoincrement=True)
     case_number = Column(
-        String, ForeignKey("case_defendant.case_number"), nullable=False
+        String, ForeignKey("case_defendant.case_number"), nullable=False, index=True
     )
     bond_number = Column(String)
     amount = Column(String)
@@ -63,6 +76,7 @@ class Bond(Base):
     date_set = Column(String)
     date_posted = Column(String)
     bondsman_surety_co = Column(String)
+    case_defendant = relationship("CaseDefendant", back_populates="bonds")
 
 
 class Action(Base):
@@ -71,10 +85,11 @@ class Action(Base):
 
     id = Column(Integer, autoincrement=True)
     case_number = Column(
-        String, ForeignKey("case_defendant.case_number"), nullable=False
+        String, ForeignKey("case_defendant.case_number"), nullable=False, index=True
     )
     event_date = Column(String)
     event_description = Column(String)
+    case_defendant = relationship("CaseDefendant", back_populates="actions")
 
 
 class Docket(Base):
@@ -83,7 +98,7 @@ class Docket(Base):
 
     id = Column(Integer, autoincrement=True)
     case_number = Column(
-        String, ForeignKey("case_defendant.case_number"), nullable=False
+        String, ForeignKey("case_defendant.case_number"), nullable=False, index=True
     )
     proceeding_date = Column(String)
     filing_date = Column(String)
@@ -92,6 +107,7 @@ class Docket(Base):
     docket_description = Column(String)
     pdf_link = Column(String)
     image_s3_path = Column(String, nullable=True)
+    case_defendant = relationship("CaseDefendant", back_populates="dockets")
 
 
 class Cost(Base):
@@ -100,16 +116,16 @@ class Cost(Base):
 
     id = Column(Integer, autoincrement=True)
     case_number = Column(
-        String, ForeignKey("case_defendant.case_number"), nullable=False
+        String, ForeignKey("case_defendant.case_number"), nullable=False, index=True
     )
     account = Column(String)
     amount = Column(String)
+    case_defendant = relationship("CaseDefendant", back_populates="costs")
 
 
 class Defendant(Base):
     __tablename__ = "defendant"
-    __table_args__ = (
-        PrimaryKeyConstraint("id", name="defendant_primary_key"),)
+    __table_args__ = (PrimaryKeyConstraint("id", name="defendant_primary_key"),)
 
     id = Column(String, primary_key=True, index=True, unique=True, nullable=False)
     name = Column(String)
@@ -130,6 +146,7 @@ class Defendant(Base):
     eyes = Column(String)
     date_of_birth = Column(String)
     hair = Column(String)
+    aliases = relationship("Alias", back_populates="defendant")
 
 
 class Alias(Base):
@@ -137,10 +154,11 @@ class Alias(Base):
     __table_args__ = (PrimaryKeyConstraint("id", name="alias_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
-    defendant_id = Column(String, ForeignKey("defendant.id"), nullable=False)
+    defendant_id = Column(String, ForeignKey("defendant.id"), nullable=False, index=True)
     case_number = Column(String)
     name = Column(String)
     dob = Column(String)
+    defendant = relationship("Defendant", back_populates="aliases")
 
 
 class Attorney(Base):
@@ -149,8 +167,9 @@ class Attorney(Base):
 
     id = Column(Integer, autoincrement=True)
     case_number = Column(
-        String, ForeignKey("case_defendant.case_number"), nullable=False
+        String, ForeignKey("case_defendant.case_number"), nullable=False, index=True
     )
     name = Column(String)
     address = Column(String)
     phone = Column(String)
+    case_defendant = relationship("CaseDefendant", back_populates="attornies")

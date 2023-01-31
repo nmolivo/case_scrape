@@ -15,3 +15,8 @@ How it Runs:
 - AWS 
 
 (C) :fly: 
+
+***
+# Getting Started
+First create or secure access to the courtscrape database. You can use `scripts/init_db.py` to do so.
+Once you have this, please make sure to  
