@@ -1,0 +1,13 @@
+- name: Create Zip File
+    uses: montudor/action-zip@v0.1.0
+    with:
+      args: zip -r ./court_scrape/case_scrape.zip ./court_scrape/case_scrape
+
+- name: Push Zip to S3
+    uses: jakejarvis/s3-sync-action@v0.3.1
+    env:
+      SOURCE_DIR: './cuya-courts'
+      AWS_REGION: 'us-east-1'
+      AWS_S3_BUCKET: 'court-scrape'
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
