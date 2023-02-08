@@ -29,8 +29,7 @@ from case_scrape import models
 
 
 engine = DBConfig(
-    password=os.getenv("DB_PASSWORD"), user=os.getenv("DB_USER"), host="localhost", port=5432
-    # host=os.getenv("DB_HOST"), port=os.getenv("DB_PORT")
+    password=os.getenv("DB_PASSWORD"), user=os.getenv("DB_USER"), host=os.getenv("DB_HOST"), port=os.getenv("DB_PORT")
 ).get_engine()
 
 Base.metadata.create_all(bind=engine, checkfirst=True)
