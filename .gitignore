@@ -9,3 +9,4 @@ __pycache__
 .ipynb_checkpoints
 /court_scrape/*
 !/court_scrape/lambda_function.py
+.vscode
