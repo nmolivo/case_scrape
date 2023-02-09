@@ -1,4 +1,6 @@
 import os
+import random
+import time
 import requests
 
 from sqlalchemy import func
@@ -38,9 +40,10 @@ if last_case_scraped:
 else:
     next_idx = 0
 
-cases_to_srape = case_numbers[next_idx:]
+cases_to_scrape = case_numbers[next_idx:]
 
 for case in cases_to_scrape:
     url = os.getenv("LAMBDA_ENDPOINT")
     data = {"event": str(case)}
     requests.post(url, data=data)
+    time.sleep(random.randrange((60*5), (60*15)))

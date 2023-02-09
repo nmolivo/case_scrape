@@ -7,7 +7,7 @@ init-env:
 	pyenv virtualenv 3.9 cuya-courts
 
 env:
-	pyenv local cuya-courts
+	pyenv activate cuya-courts
 
 init-db:
 	python scripts/init_db.py
