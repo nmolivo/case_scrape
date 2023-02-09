@@ -8,3 +8,6 @@ init-env:
 
 env:
 	pyenv local cuya-courts
+
+init-db:
+	python scripts/init_db.py
