@@ -7,6 +7,6 @@
 .env
 __pycache__
 .ipynb_checkpoints
-/court_scrape/*
+/criminal_scrape_lambda/*
 !/court_scrape/lambda_function.py
 .vscode

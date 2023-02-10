@@ -512,6 +512,7 @@ def update_case(db, case_number, status):
     db.add(db_progress)
     db.commit()
 
+### The lambda handler!!! 
 
 def lambda_handler(event, context):
     case_no_str = event["case_number"]
