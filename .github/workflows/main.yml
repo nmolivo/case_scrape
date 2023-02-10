@@ -1,8 +1,10 @@
 steps:
   - name: Install packages to directory
-    uses: py-actions-py-dependency-install@v4
+    uses: py-actions/py-dependency-install@v4
     with:
       update-pip: "true"
+      update-wheel: "true"
+      update-setuptools: "true"
     run: pip install -r requirements.text -t ./criminal_scrape_lambda/
 
   - name: Create Zip File
