@@ -23,7 +23,6 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from webdriver_manager.chrome import ChromeDriverManager
 
-from criminal_scrape_lambda.models import Base
 from criminal_scrape_lambda.db.db_config import DBConfig
 from criminal_scrape_lambda.db.engine import get_db
 from criminal_scrape_lambda import models
