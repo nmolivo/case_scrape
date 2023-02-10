@@ -1,12 +1,12 @@
-import os
 import random
 import re
 from datetime import datetime
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 
 import pandas as pd
 
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
+from criminal_scrape_lambda.db.db_config import get_db_config
 from selenium import webdriver
 from selenium.common.exceptions import (
     TimeoutException,
@@ -19,54 +19,20 @@ from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from sqlalchemy import and_, func
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from webdriver_manager.chrome import ChromeDriverManager
 
-from case_scrape.models import Base
-from case_scrape.db.db_config import DBConfig
-from case_scrape import models
+from criminal_scrape_lambda.models import Base
+from criminal_scrape_lambda.db.db_config import DBConfig
+from criminal_scrape_lambda.db.engine import get_db
+from criminal_scrape_lambda import models
 
-
-engine = DBConfig(
-    password=os.getenv("DB_PASSWORD"), user=os.getenv("DB_USER"), host=os.getenv("DB_HOST"), port=os.getenv("DB_PORT")
-).get_engine()
-
-Base.metadata.create_all(bind=engine, checkfirst=True)
-
-Session = sessionmaker(bind=engine)
-session = Session()
-
-
-def get_last_scraped() -> int:
-    db = Session()
-    max_id = db.query(func.max(models.Progress.case_id)).scalar()
-    return max_id
-
-
-case_numbers = (
-    [str(x) for x in range(655783, 666532)]
-    + [str(x) for x in range(655656, 666532)]
-    + [str(x) for x in range(647313, 655655)]
-    + [str(x) for x in range(635863, 647312)]
-    + [str(x) for x in range(624667, 635860)]
-    + [str(x) for x in range(612912, 624666)]
-    + [str(x) for x in range(602355, 612910)]
-)
-
-last_case_scraped = get_last_scraped()
-
-if last_case_scraped:
-    next_idx = case_numbers.index(str(last_case_scraped)) + 1
-else:
-    next_idx = 0
-
-cases_to_srape = case_numbers[next_idx:]
 
 ### Functions for committing to database :)
 
 
-def check_tos(driver):
+def check_tos(driver: WebDriver) -> webdriver.Chrome:
     # anticipates terms of service pop up
     driver.implicitly_wait(random.randrange(1, 5))
     if "TOS" in driver.current_url:
@@ -122,7 +88,8 @@ def search_case_number(driver: WebDriver, case_number: str) -> webdriver.Chrome:
     return driver
 
 
-def get_images(data, images):
+def get_images(data, images) -> List[str]:
+    # used to obtain a list of hrefs to the pdf images accompanying docket records
     data_list = []
     image_count = 0
     for d in data:
@@ -135,12 +102,12 @@ def get_images(data, images):
 
 
 def get_table(
-    driver,
+    driver: WebDriver,
     case_number: str,
     header_xpath: str,
     data_xpath: str,
     image_xpath: Union[None, str] = None,
-):
+) -> Tuple[webdriver.Chrome, pd.DataFrame]:
     headers = driver.find_elements(By.XPATH, header_xpath)
     data = driver.find_elements(By.XPATH, data_xpath)
     if image_xpath:
@@ -156,7 +123,7 @@ def get_table(
     return driver, df
 
 
-def write_pandas_df_to_db(db, df: pd.DataFrame, table_to_write_to: str):
+def write_pandas_df_to_db(db: Session, df: pd.DataFrame, table_to_write_to: str) -> None:
     engine = db.get_bind()
     df.columns = df.columns.str.replace(" ", "_")
     df.columns = df.columns.str.lower()
@@ -165,7 +132,7 @@ def write_pandas_df_to_db(db, df: pd.DataFrame, table_to_write_to: str):
     df.to_sql(table_to_write_to, engine, if_exists="append", index=False)
 
 
-def fetch_case_summary(db, driver):
+def fetch_case_summary(db: Session, driver: WebDriver) -> Tuple[WebDriver, str]:
     """commits returns case_number"""
     WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
@@ -310,7 +277,7 @@ def fetch_case_summary_tables(db, driver, case_number) -> Tuple[WebDriver, str]:
     return driver, case_number
 
 
-def fetch_docket_info(db, driver, case_number) -> Tuple[WebDriver, str]:
+def fetch_docket_info(db: Session, driver: WebDriver, case_number: str) -> Tuple[WebDriver, str]:
     """from case summary page, clicks docket, downloads information, checks if it already exists, deletes if so, then appends to database."""
     WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
@@ -343,7 +310,7 @@ def fetch_docket_info(db, driver, case_number) -> Tuple[WebDriver, str]:
     return driver, case_number
 
 
-def fetch_cost_info(db, driver, case_number) -> Tuple[WebDriver, str]:
+def fetch_cost_info(db: Session, driver: WebDriver, case_number: str) -> Tuple[WebDriver, str]:
     """Clicks the cost panel, obtains table, observes if table already exists, deletes if so, appends new records to database"""
     WebDriverWait(driver, 2).until(
         EC.element_to_be_clickable(
@@ -545,62 +512,64 @@ def update_case(db, case_number, status):
     db.add(db_progress)
     db.commit()
 
+### The lambda handler!!! 
 
-### okay now the actual scrape!
-
-for case_no_str in cases_to_srape:
+def lambda_handler(event, context):
+    case_no_str = event["case_number"]
     opts = Options()
-    # opts.headless = True
-    session = Session()
+    opts.headless = True
+    session = get_db()
     driver = webdriver.Chrome(
         options=opts, service=ChromeService(ChromeDriverManager().install())
     )
     driver = search_case_number(driver, case_no_str)
     data_elems = driver.find_elements(
-        By.XPATH, "//*[(@id='SheetContentPlaceHolder_ctl00_gvCaseResults')]//*[@href]"
+        By.XPATH,
+        "//*[(@id='SheetContentPlaceHolder_ctl00_gvCaseResults')]//*[@href]",
     )
     if len(data_elems) > 0:
-        for i, elem in enumerate(data_elems):
+        for i, _ in enumerate(data_elems):
             data_elems = driver.find_elements(
                 By.XPATH,
                 "//*[(@id='SheetContentPlaceHolder_ctl00_gvCaseResults')]//*[@href]",
             )
             data_elems[i].click()
-            driver, case_number = fetch_case_summary(session, driver)
+            driver, case_number = fetch_case_summary(get_db(), driver)
             driver, case_number = fetch_case_summary_tables(
-                session, driver, case_number
+                get_db(), driver, case_number
             )
-            driver, case_number = fetch_docket_info(session, driver, case_number)
+            driver, case_number = fetch_docket_info(get_db(), driver, case_number)
             driver.back()
             driver = check_tos(driver)
-            driver, case_number = fetch_cost_info(session, driver, case_number)
+            driver, case_number = fetch_cost_info(get_db(), driver, case_number)
             driver.back()
             driver = check_tos(driver)
-            driver, case_number = fetch_defendant_info(session, driver, case_number)
+            driver, case_number = fetch_defendant_info(get_db(), driver, case_number)
             driver.back()
             driver = check_tos(driver)
-            driver, case_number = fetch_attorney_info(session, driver, case_number)
+            driver, case_number = fetch_attorney_info(get_db(), driver, case_number)
             driver.back()
             driver = check_tos(driver)
             driver.back()
-            update_case(session, case_no_str, "Data Obtained")
+            update_case(get_db(), case_no_str, "Data Obtained")
     else:
         try:
-            driver, case_number = fetch_case_summary(session, driver)
-        except TimeoutException:
-
+            driver, case_number = fetch_case_summary(get_db(), driver)
+            driver, case_number = fetch_case_summary_tables(
+                get_db(), driver, case_number
+            )
+            driver, case_number = fetch_docket_info(get_db(), driver, case_number)
+            driver, case_number = fetch_cost_info(get_db(), driver, case_number)
+            driver, case_number = fetch_defendant_info(get_db(), driver, case_number)
+            driver, case_number = fetch_attorney_info(get_db(), driver, case_number)
+            update_case(get_db(), case_no_str, "Data Obtained")
             driver.close()
             driver.quit()
-            update_case(session, case_no_str, "No Data")
-            session.close()
-            continue
+ 
+        except TimeoutException:
+            driver.close()
+            driver.quit()
+            update_case(get_db(), case_no_str, "No Data")
+            
 
-        driver, case_number = fetch_case_summary_tables(session, driver, case_number)
-        driver, case_number = fetch_docket_info(session, driver, case_number)
-        driver, case_number = fetch_cost_info(session, driver, case_number)
-        driver, case_number = fetch_defendant_info(session, driver, case_number)
-        driver, case_number = fetch_attorney_info(session, driver, case_number)
-        update_case(session, case_no_str, "Data Obtained")
-        driver.close()
-        driver.quit()
-        session.close()
+        

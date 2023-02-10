@@ -1,9 +1,18 @@
-- name: Create Zip File
+steps:
+  - name: Install packages to directory
+    uses: py-actions/py-dependency-install@v4
+    with:
+      update-pip: "true"
+      update-wheel: "true"
+      update-setuptools: "true"
+    run: pip install -r requirements.text -t ./criminal_scrape_lambda/
+
+  - name: Create Zip File
     uses: montudor/action-zip@v0.1.0
     with:
-      args: zip -r ./court_scrape/case_scrape.zip ./court_scrape/case_scrape
+      args: zip -r ./court_scrape/case_scrape.zip ./court_scrape/criminal_scrape_lambda
 
-- name: Push Zip to S3
+  - name: Push Zip to S3
     uses: jakejarvis/s3-sync-action@v0.3.1
     env:
       SOURCE_DIR: './cuya-courts'

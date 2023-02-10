@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from typing import Optional
 
@@ -10,12 +11,12 @@ from sqlalchemy.engine.base import Engine
 
 @dataclass
 class DBConfig:
-    password: Optional[str] = None
-    user: Optional[str] = None
-    database: str = "cuyacourts"
-    scheme: str = "postgresql"
-    host: str = "localhost"
-    port: int = 5432
+    password: Optional[str] = os.getenv("DB_PASSWORD")
+    user: Optional[str] = os.getenv("DB_USER")
+    database: str = os.getenv("DB_DATABASE")
+    host: str = os.getenv("DB_HOST")
+    port: int = os.getenv("DB_PORT")
+    scheme: str = os.getenv("DB_SCHEME")
 
     def get_engine(self, **kwargs) -> Engine:
         """Get a SQLAlchemy Engine"""
@@ -29,4 +30,6 @@ class DBConfig:
 
 def get_db_config() -> Optional[DBConfig]:
     global DB_CONFIG
+    if DB_CONFIG is None:
+        DB_CONFIG = DBConfig()
     return DB_CONFIG

@@ -154,8 +154,10 @@ class Alias(Base):
     __table_args__ = (PrimaryKeyConstraint("id", name="alias_primary_key"),)
 
     id = Column(Integer, autoincrement=True)
-    defendant_id = Column(String, ForeignKey("defendant.id"), nullable=False, index=True)
-    case_number = Column(String, index = True)
+    defendant_id = Column(
+        String, ForeignKey("defendant.id"), nullable=False, index=True
+    )
+    case_number = Column(String, index=True)
     name = Column(String)
     dob = Column(String)
     defendant = relationship("Defendant", back_populates="aliases")
