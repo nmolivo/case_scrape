@@ -1,0 +1,10 @@
+scripts/
+.env
+.github
+.python-version
+Makefile
+README.md
+main.tf
+notebooks/
+.git
+__pycache__

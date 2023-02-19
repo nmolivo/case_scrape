@@ -10,9 +10,20 @@ Project Features:
 - SQLAlchemy ORM
 
 How it Runs:
-- AWS Lambda
+- AWS Lambda - container image
 - AWS RDS
-- AWS 
+- AWS Secrets Maanager
+
+***
+
+# Learn to make this
+
+
+***
+
+# Request permission to access this data
+
+***
 
 (C) :fly: 
 

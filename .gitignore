@@ -10,3 +10,4 @@ __pycache__
 /criminal_scrape_lambda/*
 !/court_scrape/lambda_function.py
 .vscode
+notebooks/
