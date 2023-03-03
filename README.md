@@ -55,6 +55,67 @@ I'm not sure who the audience of this github repo is, but once I find out, I'll 
 - Are you trying to research criminal court cases? - If so, let's collab.
 - Are you curious about what happens with this project? - Feel free to "Watch" this repository. While data analysis and the API will be housed in a different repository, I'll do my best to keep this README abreast of any updates.
 
+
+# To scrape:
+
+### Import packages
+```python
+import json
+import random
+import time
+
+
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from db import models
+from db.db_config import DBConfig
+```
+
+### Make engine
+```python
+db_config = DBConfig(password=os.getenv("DB_PASSWORD"),
+                     user=os.getenv("DB_USER"),
+                     database=os.getenv("DB_DATABASE"),
+                     host=os.getenv("DB_HOST"),
+                     port=os.getenv("DB_PORT"),
+                     scheme=os.getenv("DB_SCHEME"))
+engine = db_config.get_engine()
+```
+
+### Get the cases that were already scraped
+```python
+def get_cases(engine):
+    with Session(engine) as db:
+        cases = db.query(models.Progress.case_id).all()
+    return [x[0] for x in cases]
+
+case_numbers = (
+    [str(x) for x in range(655656, 666532)]
+    + [str(x) for x in range(647313, 655655)]
+    + [str(x) for x in range(635863, 647312)]
+    + [str(x) for x in range(624667, 635860)]
+    + [str(x) for x in range(612912, 624666)]
+    + [str(x) for x in range(602355, 612910)]
+)
+
+cases_to_scrape = sorted(list(set(case_numbers) - set(cs)), reverse=True)
+```
+
+### Use boto to send payload to Lambda endpoint
+```python
+client = boto3.client("lambda")
+
+for case in sorted_cases:
+    data = json.dumps({"event": str(case)})
+    headers = {'Content-type': 'application/json', 'SignatureHeader': 'XYZ'}
+    response = client.invoke(FunctionName="criminal_case_scrape",
+                             InvocationType="Event",
+                             Payload = json.dumps({"case_number": case}))
+    print(f"scraped case {case}")
+    time.sleep(random.randrange(15, 25))
+```
+
+
 (C) :fly: 
 
 ***
