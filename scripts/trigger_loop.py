@@ -1,25 +1,28 @@
+import sys
+sys.path.append("/Users/nmolivo/Documents/Repos/case_scrape")
+import json
 import os
 import random
 import time
 import requests
 
 from sqlalchemy import func
-from criminal_scrape_lambda.db import models
-from criminal_scrape_lambda.db.engine import get_db
-from criminal_scrape_lambda.db.db_config import get_db_config
-from criminal_scrape_lambda.db.models import Base
+from sqlalchemy.orm import Session
+from db import models
+from db.db_config import DBConfig
+from db.models import Base
 
 
 ### make engine
-db_config = get_db_config()
+db_config = DBConfig()
 engine = db_config.get_engine()
 
 Base.metadata.create_all(bind=engine, checkfirst=True)
 
 
 def get_last_scraped() -> int:
-    db = get_db()
-    max_id = db.query(func.max(models.Progress.case_id)).scalar()
+    with Session(engine) as db:
+        max_id = db.query(func.max(models.Progress.case_id)).scalar()
     return max_id
 
 
@@ -44,6 +47,8 @@ cases_to_scrape = case_numbers[next_idx:]
 
 for case in cases_to_scrape:
     url = os.getenv("LAMBDA_ENDPOINT")
-    data = {"event": str(case)}
-    requests.post(url, data=data)
-    time.sleep(random.randrange((60*5), (60*15)))
+    data = json.dumps({"event": str(case)})
+    headers = {'Content-type': 'application/json', 'SignatureHeader': 'XYZ'}
+    requests.post(url, headers= headers, data=data)
+    time.sleep(random.randrange((60 * 5), (60 * 15)))
+

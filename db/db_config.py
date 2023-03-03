@@ -26,10 +26,3 @@ class DBConfig:
             **kwargs,
         )
         return engine
-
-
-def get_db_config() -> Optional[DBConfig]:
-    global DB_CONFIG
-    if DB_CONFIG is None:
-        DB_CONFIG = DBConfig()
-    return DB_CONFIG

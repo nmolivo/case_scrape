@@ -11,3 +11,19 @@ env:
 
 init-db:
 	python scripts/init_db.py
+
+image-local:
+	docker build -t case-scrape-local .
+	docker run -p 9000:8080 case-scrape-local:latest
+
+image-test-local:
+	curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{"case_number":"655783"}'
+
+update-ecr-image:
+	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 952753501735.dkr.ecr.us-east-1.amazonaws.com
+	docker build -t case-scrape .
+	docker tag case-scrape:latest 952753501735.dkr.ecr.us-east-1.amazonaws.com/case-scrape:latest
+	docker push 952753501735.dkr.ecr.us-east-1.amazonaws.com/case-scrape:latest
+	
+update-lambda:
+	aws lambda update-function-code --function-name case-scrape --image-uri 952753501735.dkr.ecr.us-east-1.amazonaws.com/case-scrape:latest
