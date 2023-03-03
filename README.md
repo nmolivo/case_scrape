@@ -98,7 +98,7 @@ case_numbers = (
     + [str(x) for x in range(602355, 612910)]
 )
 
-cases_to_scrape = sorted(list(set(case_numbers) - set(cs)), reverse=True)
+cases_to_scrape = sorted(list(set(case_numbers) - set(cases)), reverse=True)
 ```
 
 ### Use boto to send payload to Lambda endpoint
