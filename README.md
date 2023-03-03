@@ -23,7 +23,7 @@ There are a few components to this tool.
     Written in python, uses Selenium to navigate website. I used Chrome extensions X and Y to help me find the XPATHs used in this scraper. While the Criminal Court docket website requires some navigation and clicks for our scraper to agree to the Terms of Service before gathering public data, these XPATHs make the scraper rather frail. Should the website change these tags over time, we would need to deploy a new version.
     
 2. The AWS Lambda function
-    A lambda function spins up a new virtual computer for each request made to it. This is how the scraper runs in such a way that it will not get blocked by the website. In this case, we deploy the Lambda function as a container image hosted on and take advantage of the Lambda function's URL endpoint to run the scrape. 
+    A lambda function spins up a new virtual computer for each request made to it. This is how the scraper runs in such a way that it will not get blocked by the website. In this case, we deploy the Lambda function as a container image hosted on AWS ECR, and take advantage of the Lambda function's URL endpoint to run the scrape. 
 
 3. AWS Elastic Container Registry
     By containerizing our Lambda function with Docker, we are able to take advantage of Lambda's most generous default quota for code package size. This is needed because installing a browser to scrape with Selenium require time and space beyond what the other deployment options offer. (.zip Deployment package, code in the console)
