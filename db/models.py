@@ -55,7 +55,7 @@ class Charge(Base):
     case_number = Column(
         String, ForeignKey("case_defendant.case_number"), nullable=False, index=True
     )
-    type = Column(String)
+    charge_type = Column(String)
     statute = Column(String)
     charge_description = Column(String)
     disposition = Column(String)
@@ -72,7 +72,7 @@ class Bond(Base):
     )
     bond_number = Column(String)
     amount = Column(String)
-    type = Column(String)
+    bond_type = Column(String)
     date_set = Column(String)
     date_posted = Column(String)
     bondsman_surety_co = Column(String)
