@@ -32,9 +32,9 @@ on:
       - main
 
 env:
-  AWS_REGION: MY_AWS_REGION                   # set this to your preferred AWS region, e.g. us-west-1
-  ECR_REPOSITORY: MY_ECR_REPOSITORY           # set this to your Amazon ECR repository name
-
+  AWS_REGION: us-east-1                   # set this to your preferred AWS region, e.g. us-west-1
+  ECR_REPOSITORY: case-scrape           # set this to your Amazon ECR repository name
+  LAMBDA_FXN_NAME: case-scrape
 
 permissions:
   contents: read
@@ -64,7 +64,7 @@ jobs:
       id: build-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: case-scrape
+        ECR_REPOSITORY: ${{ env.ECR_REPOSITORY}}
         IMAGE_TAG: ${{ github.sha }}
       run: |
         # Build a docker container and
@@ -78,5 +78,6 @@ jobs:
       id: update-criminal-case-scrape-lambda-code
       env:
         IMAGE_URI: ${{ steps.build-image.outputs.image }}
+        LAMBDA_FXN_NAME: ${{ env.LAMBDA_FXN_NAME }}
       run: |
-        aws lambda update-function-code --function-name arn:aws:lambda:us-east-1:952753501735:function:criminal_case_scrape --image-uri $IMAGE_URI
+        aws lambda update-function-code --function-name $LAMBDA_FXN_NAME --image-uri $IMAGE_URI
