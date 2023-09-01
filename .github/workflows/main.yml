@@ -30,6 +30,9 @@ on:
   push:
     branches:
       -main
+  pull_request:
+    branches:
+      -main
 
 env:
   AWS_REGION: MY_AWS_REGION                   # set this to your preferred AWS region, e.g. us-west-1
