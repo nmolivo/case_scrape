@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append("/Users/nmolivo/Documents/Repos/case_scrape")
 import json
 import os
@@ -48,7 +49,6 @@ cases_to_scrape = case_numbers[next_idx:]
 for case in cases_to_scrape:
     url = os.getenv("LAMBDA_ENDPOINT")
     data = json.dumps({"event": str(case)})
-    headers = {'Content-type': 'application/json', 'SignatureHeader': 'XYZ'}
-    requests.post(url, headers= headers, data=data)
+    headers = {"Content-type": "application/json", "SignatureHeader": "XYZ"}
+    requests.post(url, headers=headers, data=data)
     time.sleep(random.randrange((60 * 5), (60 * 15)))
-

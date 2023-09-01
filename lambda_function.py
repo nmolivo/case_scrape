@@ -115,6 +115,8 @@ def get_table(
         table[h.text.upper().strip()] = data_list[i :: len(headers)]
     df = pd.DataFrame(table)
     df["CASE_NUMBER"] = case_number
+    df.fillna("", inplace=True)
+    df.fillna("N/A", inplace=True)
     return driver, df
 
 
@@ -216,6 +218,7 @@ def fetch_case_summary_tables(engine, driver, case_number) -> Tuple[WebDriver, s
         header_xpath="//table[(@id = 'SheetContentPlaceHolder_caseCharges_gvCharges')]//th",
         data_xpath="//table[(@id = 'SheetContentPlaceHolder_caseCharges_gvCharges')]//td",
     )
+    charge_df.rename(columns={"type": "charge_type"}, inplace=True)
     # delete all before adding them if they exist
     with Session(engine) as db:
         if (
@@ -239,6 +242,7 @@ def fetch_case_summary_tables(engine, driver, case_number) -> Tuple[WebDriver, s
         header_xpath="//table[(@id = 'SheetContentPlaceHolder_caseBondInfo_gvBonds')]//th",
         data_xpath="//table[(@id = 'SheetContentPlaceHolder_caseBondInfo_gvBonds')]//td",
     )
+    bond_df.rename(columns={"type": "bond_type"}, inplace=True)
     with Session(engine) as db:
         if (
             len(
@@ -334,7 +338,8 @@ def fetch_cost_info(
         data_xpath="//table[(@id = 'SheetContentPlaceHolder_caseCosts_gvCosts')]//td",
     )
     # remove "Total" row, as we can calculate this ourselves.
-    cost_table[cost_table["ACCOUNT"].str.contains("TOTAL") == False]
+    cost_table = cost_table[cost_table["ACCOUNT"].str.contains("TOTAL") == False]
+
     with Session(engine) as db:
         if (
             len(
