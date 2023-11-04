@@ -334,6 +334,7 @@ def fetch_cost_info(
         data_xpath="//table[(@id = 'SheetContentPlaceHolder_caseCosts_gvCosts')]//td",
     )
     # remove "Total" row, as we can calculate this ourselves.
+    
     cost_table[cost_table["ACCOUNT"].str.contains("TOTAL") == False]
     with Session(engine) as db:
         if (
