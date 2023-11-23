@@ -32,6 +32,7 @@ There are a few components to this tool.
 
 1. The scraper
    Written in python, uses Selenium to navigate website. I used Chrome extensions [SelectorGadget and XPath Helper to help me find the XPATHs used in this scraper. While the Criminal Court docket website requires some navigation and clicks for our scraper to agree to the Terms of Service before gathering public data, these XPATHs make the scraper rather frail. Should the website change these tags over time, we would need to deploy a new version.
+
 2. The AWS Lambda function
    A lambda function spins up a new virtual computer for each request made to it. This is how the scraper runs in such a way that it will not get blocked by the website. In this case, we deploy the Lambda function as a container image hosted on AWS ECR.
 
@@ -44,16 +45,15 @@ There are a few components to this tool.
 5. Github actions
    With each push to main, a new ECR image is created and the Lambda function is updated.
 
-I've created a terraform script to describe how each of these items fit together, but actually did not use terraform to create this, yet.
-
 A consideration in running scrapers is we do not wish to crash the host website. As a result, we choose a friendly rate of about 3 cases per minute. Given there are about 70K cases total, it takes about 16 days to obtain all the data if it runs non-stop. Manual and programmatic data quality checks are performed and a case can be re-scraped to be updated or corrected. Each time a case is re-scraped, all its corresponding records (charges, cost, docket, attorney, bond, defendent) are deleted and re-written so that the database will not contain duplicate records.
 
 ---
 
-# Request permission to access this data
+# Download this data from the [Cuyacourts website](https://nmolivo.github.io/cuyacourts/)
 
-This is public data previously scraped by The Marshall Project under research grant XXXXX.XX. After learning about the Marshall Project's efforts at DataDays Cleveland 2022, I wanted to give it a try.
-Building an API to access this data would be a great pleasure of mine but is currently done on a volunteer basis around other obligations to my livelihood.
+According to the [Ohio Revised Code 149.43](https://codes.ohio.gov/ohio-revised-code/section-149.43) all court records and dockets are public information. They've been made available by the [Cuyahoga County Clerk of Courts](https://cpdocket.cp.cuyahogacounty.us/Search.aspx)
+
+This scraper and the idea of making court data accessible in bulk is inspired by projects like Harvard Law School's [Caselaw Access Project](https://case.law/), [The Marshall Project's Testify](https://testify.themarshallproject.org/) initiative, and many more.
 
 ---
 
