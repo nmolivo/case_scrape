@@ -1,74 +1,74 @@
 # case_scrape
-A repo to teach web scraping basics, supported by AWS resources and public data. In an ETL (or ELT) pipeline, this can be considered part of the <u>E</u>xtraction, and potentially <u>L</u>oad. Transform and data analysis steps will be stored in a different repository. There is no identified research or product objective for this data, so this step is TBD.
 
+A repo to teach web scraping basics, supported by AWS resources and public data.
 
-***
+---
 
 There's a lot you can do with court data. This repo contains materials for learning web scraping and creating a database.
 
 Project Features:
+
 - Selenium Web Scraper
 - SQLAlchemy ORM
 - Boto3
 
 How it Runs:
+
 - AWS Lambda
-- AWS ECR (Elasitc Container Registry)
+- AWS ECR (Elasitc Container Registry) - a fully-managed Docker container registry for storing, managing, and deploying images. ECR hosts images in a highly available and scalable architecture
+- AWS ECS (Elastic Container Service) - a highly scalable, high-performance container orchestration service. Allows you to easily run and scale containerized applications on AWS. ECS Components look like this:
+  - cluster: logical grouping used to isolate your application resources
+  - service: runs and maintains desired number of tasks in the ECS cluster. scales in and out on needs basis
+  - task definition
 - AWS RDS (Relational Database Service) - Postgres
+- [Amazon RDS Proxy](https://aws.amazon.com/rds/proxy/)
 - AWS IAM roles
 
-***
+---
 
 # Learn to make this
+
 There are a few components to this tool.
+
 1. The scraper
-    Written in python, uses Selenium to navigate website. I used Chrome extensions [SelectorGadget and XPath Helper to help me find the XPATHs used in this scraper. While the Criminal Court docket website requires some navigation and clicks for our scraper to agree to the Terms of Service before gathering public data, these XPATHs make the scraper rather frail. Should the website change these tags over time, we would need to deploy a new version.
-    
+   Written in python, uses Selenium to navigate website. I used Chrome extensions [SelectorGadget and XPath Helper to help me find the XPATHs used in this scraper. While the Criminal Court docket website requires some navigation and clicks for our scraper to agree to the Terms of Service before gathering public data, these XPATHs make the scraper rather frail. Should the website change these tags over time, we would need to deploy a new version.
+
 2. The AWS Lambda function
-    A lambda function spins up a new virtual computer for each request made to it. This is how the scraper runs in such a way that it will not get blocked by the website. In this case, we deploy the Lambda function as a container image hosted on AWS ECR.
+   A lambda function spins up a new virtual computer for each request made to it. This is how the scraper runs in such a way that it will not get blocked by the website. In this case, we deploy the Lambda function as a container image hosted on AWS ECR.
 
 3. AWS Elastic Container Registry
-    By containerizing our Lambda function with Docker, we are able to take advantage of Lambda's most generous default quota for code package size. This is needed because installing a browser to scrape with Selenium require time and space beyond what the other deployment options offer. (.zip Deployment package, code in the console)
+   By containerizing our Lambda function with Docker, we are able to take advantage of Lambda's most generous default quota for code package size. This is needed because installing a browser to scrape with Selenium require time and space beyond what the other deployment options offer. (.zip Deployment package, code in the console)
 
 4. AWS Relational Database Service
-    Under Amazon's free tier offering, we can house the entire Criminal Court Case docket. I used Postgres because it has a free-tier offering and I'm familiar with it. I would love to try Aurora.
+   Under Amazon's free tier offering, we can house the entire Criminal Court Case docket. I used Postgres because it has a free-tier offering and I'm familiar with it. I would love to try Aurora.
 
-3. Github actions
-    With each push to main, a new ECR image is created and the Lambda function is updated.
-
-I've created a terraform script to describe how each of these items fit together, but actually did not use terraform to create this, yet. 
+5. Github actions
+   With each push to main, a new ECR image is created and the Lambda function is updated.
 
 A consideration in running scrapers is we do not wish to crash the host website. As a result, we choose a friendly rate of about 3 cases per minute. Given there are about 70K cases total, it takes about 16 days to obtain all the data if it runs non-stop. Manual and programmatic data quality checks are performed and a case can be re-scraped to be updated or corrected. Each time a case is re-scraped, all its corresponding records (charges, cost, docket, attorney, bond, defendent) are deleted and re-written so that the database will not contain duplicate records.
 
-***
+---
 
-# Request permission to access this data
+# Download this data from the [Cuyacourts website](https://nmolivo.github.io/cuyacourts/)
 
-This is public data previously scraped by The Marshall Project under research grant XXXXX.XX. After learning about the Marshall Project's efforts at DataDays Cleveland, I wanted to give it a try.
-Building an API to access this data would be a great pleasure of mine but is currently done on a volunteer basis around other obligations to my livelihood. 
-At this time, I can grant read-only access to the database to anybody who requests on my own time. I can be motivated with gifts.
+According to the [Ohio Revised Code 149.43](https://codes.ohio.gov/ohio-revised-code/section-149.43) all court records and dockets are public information. They've been made available by the [Cuyahoga County Clerk of Courts](https://cpdocket.cp.cuyahogacounty.us/Search.aspx)
 
-***
+This scraper and the idea of making court data accessible in bulk is inspired by projects like Harvard Law School's [Caselaw Access Project](https://case.law/), [The Marshall Project's Testify](https://testify.themarshallproject.org/) initiative, and many more.
+
+---
 
 # Getting Started
 
-I'm not sure who the audience of this github repo is, but once I find out, I'll update this. 
+I'm not sure who the audience of this github repo is, but once I find out, I'll update this.
+
 - Are you trying to deploy a scraper? - If so, where are your pain points?
-- Are you trying to research criminal court cases? - If so, let's collab.
-- Are you interested in data visualization and hosting a dashboard? - If so, let's collab.
-- Are you curious about what happens with this project? - Feel free to "Watch" this repository. While data analysis and the API will be housed in a different repository, I'll do my best to keep this README abreast of any updates.
-
-# Next Steps
-Although I'm using AWS Free Tier resources, this costs about $30/month to run and host. I will soon be creating a backup of this database up and spinning it up (manually) as needed. Once I run out of AWS' free tier time, I think this data will cost about ~$130 to host on RDS per month. I am not in the business of grant writing and cannot promise my commitment to this project will continue at that price point.
-
-Building an API to access this data would be a great pleasure of mine but is currently done on a volunteer basis around other obligations to my livelihood. 
-
-While I am on AWS free-tier time, I can grant read-only access to the database to anybody who requests on my own time. I can be motivated with gifts.
-
+- Are you trying to research criminal court cases? - If so, I'd love to hear about your work.
+- Are you curious about what happens with this project? - Feel free to "Watch" this repository. While data analysis and the API will be housed in a different repositories, I'll do my best to keep this README abreast of any updates.
 
 # To scrape:
 
 ### Import packages
+
 ```python
 import json
 import random
@@ -82,6 +82,7 @@ from db.db_config import DBConfig
 ```
 
 ### Make engine
+
 ```python
 db_config = DBConfig(password=os.getenv("DB_PASSWORD"),
                      user=os.getenv("DB_USER"),
@@ -93,6 +94,7 @@ engine = db_config.get_engine()
 ```
 
 ### Get the cases that were already scraped
+
 ```python
 def get_cases(engine):
     with Session(engine) as db:
@@ -112,6 +114,7 @@ cases_to_scrape = sorted(list(set(case_numbers) - set(cases)), reverse=True)
 ```
 
 ### Use boto to send payload to Lambda endpoint
+
 ```python
 client = boto3.client("lambda")
 
@@ -125,7 +128,4 @@ for case in cases_to_scrape:
     time.sleep(random.randrange(15, 25))
 ```
 
-
-(C) :fly: 
-
-
+(C) :fly:

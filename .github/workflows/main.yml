@@ -74,8 +74,8 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
     
-    - name: Update AWS criminal_case_scrape_lambda function code
-      id: update-criminal-case-scrape-lambda-code
+    - name: Update AWS lambda function function
+      id: update-lambda-function
       env:
         IMAGE_URI: ${{ steps.build-image.outputs.image }}
         LAMBDA_FXN_NAME: ${{ env.LAMBDA_FXN_NAME }}

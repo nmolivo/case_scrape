@@ -1,4 +1,4 @@
-FROM public.ecr.aws/lambda/python:3.9
+FROM amazon/aws-lambda-python:3.9
 
 # Hack to install chromium dependencies
 RUN yum install -y -q sudo unzip

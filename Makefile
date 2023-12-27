@@ -27,3 +27,7 @@ update-ecr-image:
 	
 update-lambda:
 	aws lambda update-function-code --function-name case-scrape --image-uri 952753501735.dkr.ecr.us-east-1.amazonaws.com/case-scrape:latest
+
+pg-dump-from-aws:
+	pg_dump -Z 9 -v -h ${DATABASE_HOST} -U ${DATABASE_USER} -d ${DATABASE_NAME} | aws s3 cp --storage-class STANDARD --sse aws:kms - s3://my-bucket/dump.sql.gz
+

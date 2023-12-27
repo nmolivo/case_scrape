@@ -1,13 +1,9 @@
-.notes
 .DS_Store
-.venv/
 .idea
 .notes
 .pyc
 .env
 __pycache__
 .ipynb_checkpoints
-/criminal_scrape_lambda/*
-!/court_scrape/lambda_function.py
 .vscode
 notebooks/
