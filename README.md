@@ -128,4 +128,21 @@ for case in cases_to_scrape:
     time.sleep(random.randrange(15, 25))
 ```
 
+# To debug lambda locally
+
+1. Run Docker locally
+2. `make image-local-debug`
+3. `make debug-event`
+4. Drop breakpoints if you haven't
+5. In Run and Debug, click "Attach to Lambda Container" in Run and Debug
+6. If any container logs are open when the session times out, run `make clean` to remove unused resources
+
+### Why not use SAM to debug?
+
+Because SAM works better on zip-based lambdas, and this is an image-based lambda. For image-based lambdas, SAM is unable to reliably inject and use environment variables, and would still require manual insertion of `debugpy` and `wait_for_client()`. Check out the Makefile to understand the inner workings of debugging an image-based lambda.
+
+## Resources
+
+- https://medium.com/akava/deploying-containerized-aws-lambda-functions-with-terraform-7147b9815599
+
 (C) :fly:

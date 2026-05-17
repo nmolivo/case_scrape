@@ -1,6 +1,7 @@
 import random
 import re
 from datetime import datetime
+import os
 from typing import Tuple, Union, List
 
 import pandas as pd
@@ -24,20 +25,17 @@ from sqlalchemy.orm import Session
 from db import models
 
 
-### Functions for committing to database :)
-
-
 def check_tos(driver: WebDriver) -> webdriver.Chrome:
     # anticipates terms of service pop up
     driver.implicitly_wait(random.randrange(1, 5))
-    if "TOS" in driver.current_url:
-        try:
-            WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.ID, "SheetContentPlaceHolder_btnYes"))
-            ).click()
-        except WebDriverException:
-            return driver
-        driver.implicitly_wait(3)
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable(
+                (By.ID, "SheetContentPlaceHolder_btnYes"))
+        ).click()
+    except WebDriverException:
+        return driver
+    driver.implicitly_wait(3)
     return driver
 
 
@@ -56,7 +54,8 @@ def search_case_number(driver: WebDriver, case_number: str) -> webdriver.Chrome:
 
     if len(driver.find_elements(By.ID, "SheetContentPlaceHolder_btnYes")) > 0:
         WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, "SheetContentPlaceHolder_btnYes"))
+            EC.element_to_be_clickable(
+                (By.ID, "SheetContentPlaceHolder_btnYes"))
         ).click()
         WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable(
@@ -112,7 +111,7 @@ def get_table(
         data_list = [d.text for d in data]
     table = {}
     for i, h in enumerate(headers):
-        table[h.text.upper().strip()] = data_list[i :: len(headers)]
+        table[h.text.upper().strip()] = data_list[i:: len(headers)]
     df = pd.DataFrame(table)
     df["CASE_NUMBER"] = case_number
     df.fillna("", inplace=True)
@@ -218,8 +217,9 @@ def fetch_case_summary_tables(engine, driver, case_number) -> Tuple[WebDriver, s
         header_xpath="//table[(@id = 'SheetContentPlaceHolder_caseCharges_gvCharges')]//th",
         data_xpath="//table[(@id = 'SheetContentPlaceHolder_caseCharges_gvCharges')]//td",
     )
-    charge_df.rename(columns={"type": "charge_type"}, inplace=True)
-    # delete all before adding them if they exist
+    charge_df.rename(columns={"type": "charge_type",
+                     "TYPE": "charge_type"}, inplace=True)
+    # delete all before adding them, if they exist
     with Session(engine) as db:
         if (
             len(
@@ -242,7 +242,8 @@ def fetch_case_summary_tables(engine, driver, case_number) -> Tuple[WebDriver, s
         header_xpath="//table[(@id = 'SheetContentPlaceHolder_caseBondInfo_gvBonds')]//th",
         data_xpath="//table[(@id = 'SheetContentPlaceHolder_caseBondInfo_gvBonds')]//td",
     )
-    bond_df.rename(columns={"type": "bond_type"}, inplace=True)
+    bond_df.rename(columns={"type": "bond_type",
+                   "TYPE": "bond_type"}, inplace=True)
     with Session(engine) as db:
         if (
             len(
@@ -338,7 +339,8 @@ def fetch_cost_info(
         data_xpath="//table[(@id = 'SheetContentPlaceHolder_caseCosts_gvCosts')]//td",
     )
     # remove "Total" row, as we can calculate this ourselves.
-    cost_table = cost_table[cost_table["ACCOUNT"].str.contains("TOTAL") == False]
+    cost_table = cost_table[cost_table["ACCOUNT"].str.contains(
+        "TOTAL") == False]
 
     with Session(engine) as db:
         if (
@@ -535,10 +537,16 @@ def update_case(engine, case_number, status):
         db.commit()
 
 
-### The lambda handler!!!
+# The lambda handler!!!
 
 
 def lambda_handler(event, context):
+
+    if os.getenv("DEBUGPY"):
+        import debugpy
+        debugpy.listen(("0.0.0.0", 5890))
+        debugpy.wait_for_client()
+
     case_no_str = event["case_number"]
     opts = Options()
     opts.binary_location = "/opt/chrome/chrome"
@@ -569,17 +577,21 @@ def lambda_handler(event, context):
             )
             data_elems[i].click()
             driver, case_number = fetch_case_summary(engine, driver)
-            driver, case_number = fetch_case_summary_tables(engine, driver, case_number)
-            driver, case_number = fetch_docket_info(engine, driver, case_number)
+            driver, case_number = fetch_case_summary_tables(
+                engine, driver, case_number)
+            driver, case_number = fetch_docket_info(
+                engine, driver, case_number)
             driver.back()
             driver = check_tos(driver)
             driver, case_number = fetch_cost_info(engine, driver, case_number)
             driver.back()
             driver = check_tos(driver)
-            driver, case_number = fetch_defendant_info(engine, driver, case_number)
+            driver, case_number = fetch_defendant_info(
+                engine, driver, case_number)
             driver.back()
             driver = check_tos(driver)
-            driver, case_number = fetch_attorney_info(engine, driver, case_number)
+            driver, case_number = fetch_attorney_info(
+                engine, driver, case_number)
             driver.back()
             driver = check_tos(driver)
             driver.back()
@@ -587,11 +599,15 @@ def lambda_handler(event, context):
     else:
         try:
             driver, case_number = fetch_case_summary(engine, driver)
-            driver, case_number = fetch_case_summary_tables(engine, driver, case_number)
-            driver, case_number = fetch_docket_info(engine, driver, case_number)
+            driver, case_number = fetch_case_summary_tables(
+                engine, driver, case_number)
+            driver, case_number = fetch_docket_info(
+                engine, driver, case_number)
             driver, case_number = fetch_cost_info(engine, driver, case_number)
-            driver, case_number = fetch_defendant_info(engine, driver, case_number)
-            driver, case_number = fetch_attorney_info(engine, driver, case_number)
+            driver, case_number = fetch_defendant_info(
+                engine, driver, case_number)
+            driver, case_number = fetch_attorney_info(
+                engine, driver, case_number)
             update_case(engine, case_no_str, "Data Obtained")
             driver.close()
             driver.quit()
