@@ -1,0 +1,5 @@
+{
+    "python.formatting.provider": "black",
+    "python.envFile": "${workspaceFolder}/.env",
+    "terminal.integrated.env.osx": { "ENV_FILE": "${workspaceFolder}/.env" },
+}

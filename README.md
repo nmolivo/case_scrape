@@ -2,27 +2,51 @@
 
 A repo to teach web scraping basics, supported by AWS resources and public data.
 
+Other relevant technical competencies this project is built on include containerization, github actions, cloud architecture, and debugging in VSCode.
+
 ---
 
 There's a lot you can do with court data. This repo contains materials for learning web scraping and creating a database.
 
-Project Features:
+#### Project Features:
 
 - Selenium Web Scraper
 - SQLAlchemy ORM
 - Boto3
+- Chrome, headless browser
 
-How it Runs:
+#### Cloud-based, managed services used:
 
-- AWS Lambda
-- AWS ECR (Elasitc Container Registry) - a fully-managed Docker container registry for storing, managing, and deploying images. ECR hosts images in a highly available and scalable architecture
-- AWS ECS (Elastic Container Service) - a highly scalable, high-performance container orchestration service. Allows you to easily run and scale containerized applications on AWS. ECS Components look like this:
+- AWS Lambda - image based.
+- AWS ECR (Elasitc Container Registry) - a Docker container registry for storing, managing, and deploying images. ECR hosts images in a highly available and scalable architecture.
+- AWS ECS (Elastic Container Service) - a container orchestration service. Allows you to easily run and scale containerized applications on AWS. ECS Components look like this:
   - cluster: logical grouping used to isolate your application resources
-  - service: runs and maintains desired number of tasks in the ECS cluster. scales in and out on needs basis
+  - service: runs and maintains desired number of tasks in the ECS cluster. Scales in and out on needs basis
   - task definition
 - AWS RDS (Relational Database Service) - Postgres
 - [Amazon RDS Proxy](https://aws.amazon.com/rds/proxy/)
 - AWS IAM roles
+
+#### How it's maintained:
+
+- VSCode debugging: process to attach to local lambda image
+- Docker: for local implementation and debugging
+- Makefile: documenting repeated maintenance command line processes
+- Integration test: invokable from command line
+- Branching strategy: Gitflow + Github actions to update hosted image and container components on each merge to `main`
+
+#### To debug lambda locally
+
+1. Run Docker locally
+2. `make image-local-debug`
+3. `make debug-event`
+4. Drop breakpoints if you haven't
+5. In Run and Debug, click "Attach to Lambda Container" in Run and Debug
+6. If any container logs are open when the session times out, run `make clean` to remove unused resources
+
+##### Why not use SAM to debug?
+
+Because SAM works better on zip-based lambdas, and this is an image-based lambda. For image-based lambdas, SAM is unable to reliably inject and use environment variables, and would still require manual insertion of `debugpy` and `wait_for_client()`. Check out the Makefile to understand the inner workings of debugging an image-based lambda.
 
 ---
 
@@ -63,7 +87,7 @@ I'm not sure who the audience of this github repo is, but once I find out, I'll 
 
 - Are you trying to deploy a scraper? - If so, where are your pain points?
 - Are you trying to research criminal court cases? - If so, I'd love to hear about your work.
-- Are you curious about what happens with this project? - Feel free to "Watch" this repository. While data analysis and the API will be housed in a different repositories, I'll do my best to keep this README abreast of any updates.
+- Are you curious about what happens with this project? - Feel free to "Watch" this repository.
 
 # To scrape:
 
@@ -127,19 +151,6 @@ for case in cases_to_scrape:
     print(f"scraped case {case}")
     time.sleep(random.randrange(15, 25))
 ```
-
-# To debug lambda locally
-
-1. Run Docker locally
-2. `make image-local-debug`
-3. `make debug-event`
-4. Drop breakpoints if you haven't
-5. In Run and Debug, click "Attach to Lambda Container" in Run and Debug
-6. If any container logs are open when the session times out, run `make clean` to remove unused resources
-
-### Why not use SAM to debug?
-
-Because SAM works better on zip-based lambdas, and this is an image-based lambda. For image-based lambdas, SAM is unable to reliably inject and use environment variables, and would still require manual insertion of `debugpy` and `wait_for_client()`. Check out the Makefile to understand the inner workings of debugging an image-based lambda.
 
 ## Resources
 
